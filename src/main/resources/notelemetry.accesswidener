@@ -1,3 +1,3 @@
 accessWidener v1 named
-#Allow sendWorldLoadEventMixin to use this type
+#Allow Mixin method sendWorldLoadEvent to use this type
 accessible class net/minecraft/client/ClientTelemetryManager$PlayerInfo
