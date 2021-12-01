@@ -1,16 +1,26 @@
 trigger:
-- main
+  branches:
+    include:
+    - '*'
+  tags:
+    include:
+    - '*'
+
+variables:
+- group: telegram
 
 pool:
   vmImage: windows-latest
 
 steps:
 - task: JavaToolInstaller@0
+  displayName: 'Setup Java'
   inputs:
     versionSpec: '17'
     jdkArchitectureOption: 'x64'
     jdkSourceOption: 'PreInstalled'
 - task: Gradle@2
+  displayName: 'Build project'
   inputs:
     gradleWrapperFile: 'gradlew'
     tasks: 'build'
@@ -20,13 +30,36 @@ steps:
     sonarQubeRunAnalysis: false
     spotBugsAnalysis: false
 - task: CopyFiles@2
+  displayName: 'Sort artifacts'
   inputs:
     SourceFolder: '$(Build.SourcesDirectory)'
     Contents: 'build/libs/*.jar'
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
     flattenFolders: true
 - task: PublishBuildArtifacts@1
+  displayName: 'Publish artifacts'
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'JARs'
     publishLocation: 'Container'
+- task: PowerShell@2
+  condition: or(eq(variables['Build.Reason'], 'Manual'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+  displayName: 'Publish artifacts to Telegram'
+  inputs:
+    pwsh: true
+    targetType: 'inline'
+    script: |
+      $form = @{
+        chat_id = $(TELEGRAM_CHAT_ID)
+        disable_notification = $true
+      }
+      foreach ($i in Get-ChildItem -File) {
+        $form.document = $i
+        Invoke-RestMethod -Uri 'https://api.telegram.org/bot$(TELEGRAM_BOT_TOKEN)/sendDocument' -Form $form -Method 'POST'
+        $form.Remove('document')
+      }
+      $form.disable_web_page_preview = $true
+      $form.parse_mode = 'MarkdownV2'
+      $form.text = "\#$($env:SYSTEM_TEAMPROJECT) \#$($env:BUILD_REPOSITORY_NAME)`n`n*$((Get-Culture).TextInfo.ToTitleCase($env:BUILD_REPOSITORY_NAME)) v$($env:BUILD_SOURCEBRANCH.Split('/')[-1].Replace('.', '\.'))*`n`nBuild job successfully completed on $(Get-Date -AsUTC)\.`n`n[Build log]($($env:SYSTEM_COLLECTIONURI)$($env:SYSTEM_TEAMPROJECT)/_build/results?buildId=$($env:BUILD_BUILDID)&view=results) \| [Source code]($($env:BUILD_REPOSITORY_URI)/commit/$($env:BUILD_SOURCEVERSION))"
+      Invoke-RestMethod -Uri 'https://api.telegram.org/bot$(TELEGRAM_BOT_TOKEN)/sendMessage' -Form $form -Method 'POST'
+    workingDirectory: '$(Build.ArtifactStagingDirectory)'
