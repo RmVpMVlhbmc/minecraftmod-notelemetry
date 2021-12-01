@@ -7,8 +7,15 @@ import moe.feiyang.notelemetry.ModMain;
 
 @Mixin(ClientTelemetryManager.class)
 public class ClientTelemetryManagerMixin  {
+    /**
+    * Overwrites WorldLoad event then prints relevant log.
+    *
+    * @author    Fei Yang
+    * @reason    Disable telemetry event WorldLoad
+    * @param  pi PlayerInfo, it only exists to make Mixin happy
+    * @return    Nothing
+    */
     @Overwrite
-    //Keep vanilla params but do nothing
     private void sendWorldLoadEvent(ClientTelemetryManager.PlayerInfo pi) {
         ModMain.LOGGER.info("[NoTelemetry] World Load event is cancelled.");
     }
