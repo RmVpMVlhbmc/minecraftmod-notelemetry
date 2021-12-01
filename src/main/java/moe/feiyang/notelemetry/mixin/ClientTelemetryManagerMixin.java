@@ -17,6 +17,6 @@ public class ClientTelemetryManagerMixin  {
     */
     @Overwrite
     private void sendWorldLoadEvent(ClientTelemetryManager.PlayerInfo pi) {
-        ModMain.LOGGER.info("[NoTelemetry] World Load event is cancelled.");
+        ModMain.LOGGER.info("[NoTelemetry] WorldLoad event is cancelled.");
     }
 }
